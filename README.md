@@ -10,9 +10,9 @@ running all four every time.
 🚧 Work in progress -- building in public, one small piece at a time.
 
 - [x] FCFS simulator
-- [ ] SJF simulator
-- [ ] Priority scheduling simulator
-- [ ] Round Robin simulator
+- [x] SJF simulator
+- [x] Priority scheduling simulator
+- [x] Round Robin simulator
 - [ ] Metrics module (waiting time, turnaround time, response time)
 - [ ] Gantt chart data structure
 - [ ] Dataset generation (Poisson arrivals, bimodal burst times)
