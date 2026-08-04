@@ -13,8 +13,8 @@ running all four every time.
 - [x] SJF simulator
 - [x] Priority scheduling simulator
 - [x] Round Robin simulator
-- [ ] Metrics module (waiting time, turnaround time, response time)
-- [ ] Gantt chart data structure
+- [x] Metrics module (waiting time, turnaround time, response time)
+- [x] Gantt chart data structure
 - [ ] Dataset generation (Poisson arrivals, bimodal burst times)
 - [ ] Random Forest classifier (best algorithm predictor)
 - [ ] Regression model (expected wait/turnaround time)

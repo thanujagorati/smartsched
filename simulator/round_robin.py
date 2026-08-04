@@ -91,8 +91,12 @@ def round_robin(processes, quantum):
                 queue.append(remaining[idx])
                 idx += 1
 
-    # Return results in original process order for easy comparison
-    return [finished[p["pid"]] for p in sorted(processes, key=lambda p: p["pid"])]
+    # Return both final per-process stats AND the raw segments list.
+    # Segments are needed for Gantt charts (a process can appear
+    # multiple times); final stats match the shape used by the other
+    # three algorithms so compare_algorithms() works on RR too.
+    final_stats = [finished[p["pid"]] for p in sorted(processes, key=lambda p: p["pid"])]
+    return final_stats, segments
 
 
 if __name__ == "__main__":
@@ -102,6 +106,7 @@ if __name__ == "__main__":
         {"pid": "P3", "arrival_time": 2, "burst_time": 8},
     ]
 
-    result = round_robin(sample_processes, quantum=2)
+    result, segments = round_robin(sample_processes, quantum=2)
     for entry in result:
         print(entry)
+    print("Segments:", segments)
