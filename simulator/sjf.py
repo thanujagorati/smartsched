@@ -12,13 +12,22 @@ ones keep arriving ahead of them.
 """
 
 
-def sjf(processes):
+def sjf(processes, estimate_key="burst_time"):
     """
     Simulate non-preemptive SJF scheduling.
 
     Args:
         processes: list of dicts, each with keys:
             'pid', 'arrival_time', 'burst_time'
+        estimate_key: which field SJF uses to DECIDE which process to
+            run next. Defaults to 'burst_time' (perfect knowledge --
+            classic textbook SJF). In practice, pass
+            'estimated_burst_time' to simulate a real scheduler that
+            only has a noisy estimate of how long a process will
+            take -- the ACTUAL execution still uses the true
+            'burst_time', only the decision-making is affected.
+            This matters: SJF's optimality proof assumes perfect
+            knowledge, which real OSes don't have.
 
     Returns:
         list of dicts, each with keys:
@@ -40,11 +49,15 @@ def sjf(processes):
             time = min(p["arrival_time"] for p in remaining)
             continue
 
-        # Among available processes, pick the one with smallest burst time.
+        # Decide using estimate_key (perfect knowledge by default, or
+        # a noisy estimate if estimate_key='estimated_burst_time').
         # Tie-break by arrival_time to keep results deterministic.
-        next_process = min(available, key=lambda p: (p["burst_time"], p["arrival_time"]))
+        next_process = min(available, key=lambda p: (p[estimate_key], p["arrival_time"]))
 
         start = time
+        # ACTUAL execution always uses the true burst_time, regardless
+        # of what estimate was used to pick this process -- a wrong
+        # estimate doesn't change reality, just the scheduling decision.
         finish = start + next_process["burst_time"]
 
         completed.append({

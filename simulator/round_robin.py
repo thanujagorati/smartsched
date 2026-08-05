@@ -20,7 +20,7 @@ partial execution using 'remaining_time', separate from the original
 from collections import deque
 
 
-def round_robin(processes, quantum):
+def round_robin(processes, quantum, context_switch_overhead=0):
     """
     Simulate Round Robin scheduling.
 
@@ -28,12 +28,18 @@ def round_robin(processes, quantum):
         processes: list of dicts, each with keys:
             'pid', 'arrival_time', 'burst_time'
         quantum: int, the fixed time slice given to each process turn
+        context_switch_overhead: extra time cost charged EVERY time
+            the CPU switches from one process to another. Defaults to
+            0 (textbook-ideal RR with instant switching). Real OSes
+            pay a real cost here -- saving/restoring registers, cache
+            invalidation, etc. Setting this > 0 is what makes RR's
+            fairness-vs-overhead trade-off show up in the metrics
+            instead of being invisible.
 
     Returns:
-        list of dicts, each with keys:
-            'pid', 'finish', 'waiting_time', 'turnaround_time'
-        (note: no single 'start' time here, since a process can run
-        in multiple separate slices -- see 'segments' for that detail)
+        (final_stats, segments) tuple. final_stats is a list of dicts
+        with 'pid', 'finish', 'waiting_time', 'turnaround_time'.
+        segments is a list of (pid, start, end) tuples for Gantt charts.
     """
     # Sort by arrival so we admit processes into the queue in order
     remaining = sorted(processes, key=lambda p: p["arrival_time"])
@@ -47,7 +53,14 @@ def round_robin(processes, quantum):
 
     idx = 0  # pointer into `remaining`, tracks who has been admitted
 
-    # Admit any processes that have arrived by time 0
+    # Admit any processes that have arrived by time 0. If NO process
+    # arrives at time 0 (e.g. the earliest arrival is t=5), the queue
+    # stays empty here -- so we jump the clock forward to that first
+    # arrival before entering the main loop. Without this, the
+    # `while queue:` loop below would never even start.
+    if remaining and remaining[0]["arrival_time"] > time:
+        time = remaining[0]["arrival_time"]
+
     while idx < len(remaining) and remaining[idx]["arrival_time"] <= time:
         queue.append(remaining[idx])
         idx += 1
@@ -83,10 +96,18 @@ def round_robin(processes, quantum):
                 "waiting_time": (time - current["arrival_time"]) - current["burst_time"],
             }
 
+        # Charge context-switch overhead if the CPU is about to hand
+        # off to a different process (queue has someone else waiting,
+        # or more processes are still due to arrive). No overhead is
+        # charged after the very last process finishes -- there's
+        # nothing left to switch TO.
+        if context_switch_overhead > 0 and (queue or idx < len(remaining)):
+            time += context_switch_overhead
+
         # If queue is empty but there are still unadmitted processes,
         # jump forward to the next arrival (CPU idle gap)
         if not queue and idx < len(remaining):
-            time = remaining[idx]["arrival_time"]
+            time = max(time, remaining[idx]["arrival_time"])
             while idx < len(remaining) and remaining[idx]["arrival_time"] <= time:
                 queue.append(remaining[idx])
                 idx += 1

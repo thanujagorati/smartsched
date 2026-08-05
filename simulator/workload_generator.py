@@ -82,7 +82,7 @@ def generate_burst_times(num_processes, short_mean=3, short_std=1,
 
 
 def generate_workload(num_processes, arrival_rate=0.5, priority_range=(1, 5),
-                       seed=None):
+                       estimation_error=0.25, seed=None):
     """
     Generate a complete synthetic workload: a list of process dicts
     ready to feed directly into any of the four scheduling algorithms.
@@ -92,11 +92,20 @@ def generate_workload(num_processes, arrival_rate=0.5, priority_range=(1, 5),
         arrival_rate: lambda for the Poisson arrival process
         priority_range: (min, max) inclusive range for random priority
                          assignment (needed for priority_scheduling)
+        estimation_error: how noisy 'estimated_burst_time' is relative
+                           to the true burst_time (0.25 = roughly +/-25%
+                           error on average). This models the real-world
+                           fact that an OS scheduler doesn't actually
+                           know a process's exact CPU time in advance --
+                           SJF has to work off an ESTIMATE, not the
+                           true value. Set to 0 for perfect-knowledge
+                           SJF (useful for comparison/debugging).
         seed: optional random seed, for reproducible workloads
               (useful when debugging or writing tests)
 
     Returns:
-        list of dicts with 'pid', 'arrival_time', 'burst_time', 'priority'
+        list of dicts with 'pid', 'arrival_time', 'burst_time',
+        'estimated_burst_time', 'priority'
     """
     if seed is not None:
         random.seed(seed)
@@ -106,10 +115,18 @@ def generate_workload(num_processes, arrival_rate=0.5, priority_range=(1, 5),
 
     workload = []
     for i in range(num_processes):
+        true_burst = burst_times[i]
+        # Estimated burst time = true value plus proportional noise.
+        # This is what a real scheduler would actually have access to
+        # when making SJF decisions -- never the true value itself.
+        noise_factor = random.gauss(1.0, estimation_error)
+        estimated_burst = max(1, round(true_burst * noise_factor))
+
         workload.append({
             "pid": f"P{i + 1}",
             "arrival_time": arrival_times[i],
-            "burst_time": burst_times[i],
+            "burst_time": true_burst,
+            "estimated_burst_time": estimated_burst,
             "priority": random.randint(*priority_range),
         })
 
