@@ -42,6 +42,9 @@ def fcfs(processes):
             "start": start,
             "finish": finish,
             "waiting_time": start - p["arrival_time"],
+            "response_time": start - p["arrival_time"],  # same as waiting_time here --
+            # FCFS only runs a process once, so "first got the CPU" and
+            # "finished waiting" happen at the same instant
             "turnaround_time": finish - p["arrival_time"],
         })
 

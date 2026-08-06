@@ -67,7 +67,7 @@ def extract_features(workload):
     }
 
 
-def compute_score(metrics, starvation_weight=0.3):
+def compute_score(metrics, starvation_weight=0.3, response_weight=0.5):
     """
     Combine multiple metrics into a single comparable score, instead
     of judging purely on average waiting time. Lower score = better.
@@ -78,27 +78,37 @@ def compute_score(metrics, starvation_weight=0.3):
     job trivial (and unrealistic; real scheduling decisions weigh more
     than one factor).
 
+    response_weight matters a lot here: Round Robin structurally has
+    HIGH average waiting time (a process's wait accumulates across
+    every other process's turn, every round) -- that's expected
+    scheduling theory, not a bug. RR's real advantage is fast
+    RESPONSE time (how quickly a process gets its first slice of CPU),
+    which matters for interactive/time-sharing systems. Without
+    weighing response time, RR can structurally never win regardless
+    of how the simulation is tuned.
+
     Args:
-        metrics: dict from compute_metrics() -- needs 'avg_waiting_time'
-                 and 'max_waiting_time'
-        starvation_weight: how much to penalize high worst-case waiting
-                            time (protects against algorithms that are
-                            good on average but let some process starve)
+        metrics: dict from compute_metrics()
+        starvation_weight: penalty for high worst-case waiting time
+        response_weight: how much fast response time is rewarded
 
     Returns:
         float score (lower is better)
     """
-    return metrics["avg_waiting_time"] + starvation_weight * metrics["max_waiting_time"]
+    return (
+        metrics["avg_waiting_time"]
+        + starvation_weight * metrics["max_waiting_time"]
+        + response_weight * metrics["avg_response_time"]
+    )
 
 
-def label_best_algorithm(workload, rr_quantum=4, rr_overhead=1):
+def label_best_algorithm(workload, rr_overhead=1):
     """
     Run all four algorithms on the SAME workload and determine which
     one achieves the best (lowest) combined score.
 
     Args:
         workload: list of process dicts
-        rr_quantum: fixed time quantum used for Round Robin
         rr_overhead: context-switch cost charged per RR switch, so RR
                      isn't unrealistically free to preempt constantly
 
@@ -112,6 +122,18 @@ def label_best_algorithm(workload, rr_quantum=4, rr_overhead=1):
     # in our first pass at this dataset.
     sjf_result = sjf(workload, estimate_key="estimated_burst_time")
     priority_result = priority_scheduling(workload)
+
+    # A FIXED quantum unfairly penalizes RR on workloads whose typical
+    # burst time doesn't match it -- e.g. quantum=4 is far too small
+    # for a workload averaging burst_time=20, causing excessive
+    # preemption/overhead, while it's far too large for tiny bursts,
+    # causing RR to degrade into FCFS-like behavior. Real-world quantum
+    # tuning is workload-aware, so we scale it relative to this
+    # workload's average burst time instead of using one constant
+    # for every dataset row.
+    avg_burst = statistics.mean(p["burst_time"] for p in workload)
+    rr_quantum = max(1, round(avg_burst / 2))
+
     rr_result, _ = round_robin(workload, quantum=rr_quantum,
                                 context_switch_overhead=rr_overhead)
 

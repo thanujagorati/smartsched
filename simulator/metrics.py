@@ -38,6 +38,10 @@ def compute_metrics(schedule, total_time=None):
     avg_waiting = sum(p["waiting_time"] for p in schedule) / n
     avg_turnaround = sum(p["turnaround_time"] for p in schedule) / n
     max_waiting = max(p["waiting_time"] for p in schedule)
+    # response_time may be missing on older/simplified schedules --
+    # default to waiting_time if not present, since that's correct
+    # for any non-preemptive algorithm (see fcfs/sjf/priority)
+    avg_response = sum(p.get("response_time", p["waiting_time"]) for p in schedule) / n
 
     if total_time is None:
         # Infer from 'finish' times if present (all four algorithms
@@ -51,6 +55,7 @@ def compute_metrics(schedule, total_time=None):
         "avg_waiting_time": round(avg_waiting, 2),
         "avg_turnaround_time": round(avg_turnaround, 2),
         "max_waiting_time": max_waiting,
+        "avg_response_time": round(avg_response, 2),
         "throughput": round(throughput, 4) if throughput else None,
     }
 

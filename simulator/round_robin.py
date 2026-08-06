@@ -49,6 +49,7 @@ def round_robin(processes, quantum, context_switch_overhead=0):
     queue = deque()
     time = 0
     finished = {}
+    first_start = {}  # pid -> time of FIRST slice this process ever ran
     segments = []  # (pid, start, end) -- useful later for Gantt charts
 
     idx = 0  # pointer into `remaining`, tracks who has been admitted
@@ -74,6 +75,11 @@ def round_robin(processes, quantum, context_switch_overhead=0):
         run_time = min(quantum, current["remaining_time"])
         end = start + run_time
 
+        # Response time = when this process FIRST got the CPU, not
+        # when it finally finished. Only recorded once, on its first run.
+        if current["pid"] not in first_start:
+            first_start[current["pid"]] = start
+
         segments.append((current["pid"], start, end))
         current["remaining_time"] -= run_time
         time = end
@@ -94,6 +100,7 @@ def round_robin(processes, quantum, context_switch_overhead=0):
                 "finish": time,
                 "turnaround_time": time - current["arrival_time"],
                 "waiting_time": (time - current["arrival_time"]) - current["burst_time"],
+                "response_time": first_start[current["pid"]] - current["arrival_time"],
             }
 
         # Charge context-switch overhead if the CPU is about to hand

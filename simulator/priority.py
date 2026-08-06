@@ -54,6 +54,8 @@ def priority_scheduling(processes):
             "start": start,
             "finish": finish,
             "waiting_time": start - next_process["arrival_time"],
+            "response_time": start - next_process["arrival_time"],  # same as
+            # waiting_time -- Priority here is non-preemptive, runs once
             "turnaround_time": finish - next_process["arrival_time"],
         })
 
