@@ -16,7 +16,7 @@ running all four every time.
 - [x] Metrics module (waiting time, turnaround time, response time)
 - [x] Gantt chart data structure
 - [x] Dataset generation (Poisson arrivals, bimodal burst times)
-- [ ] Random Forest classifier (best algorithm predictor)
+- [x] Random Forest classifier (best algorithm predictor)
 - [ ] Regression model (expected wait/turnaround time)
 - [ ] Heuristic baseline for comparison
 - [ ] SHAP explainability

@@ -4,3 +4,9 @@ __pycache__/
 .DS_Store
 .ipynb_checkpoints/
 *.egg-info/
+
+# Trained models are build artifacts, regenerable by running the
+# training script -- too large for GitHub (100MB limit) and don't
+# belong in version control anyway
+*.joblib
+*.pkl

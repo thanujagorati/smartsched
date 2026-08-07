@@ -42,7 +42,38 @@ using `class_weight='balanced'` in scikit-learn's RandomForestClassifier,
 so the model is penalized more for misclassifying minority classes
 instead of just learning to always predict the majority class.
 
-## Round Robin's fixed vs adaptive quantum
+## Random Forest classifier results
+
+Trained on 50,000 generated workloads (80/20 stratified train/test split,
+`class_weight='balanced'`):
+
+| Class      | Precision | Recall | F1   | Support |
+|------------|-----------|--------|------|---------|
+| SJF        | 0.94      | 0.99   | 0.97 | 9296    |
+| FCFS       | 0.62      | 0.20   | 0.30 | 580     |
+| Priority   | 0.33      | 0.01   | 0.02 | 110     |
+| RoundRobin | 0.50      | 0.07   | 0.12 | 14      |
+
+**Key finding -- missing feature, not just missing data:** the initial
+feature set (`num_processes`, `avg_burst_time`, `burst_time_cv`, etc.)
+contained NO information about priority values, even though Priority
+scheduling's outcome depends entirely on them. No amount of additional
+data could fix this -- the model literally had no signal to learn from
+for that class.
+
+**Fix:** added `priority_variance` and `priority_burst_corr` (Pearson
+correlation between each process's priority and its burst time) as
+features. Result: `priority_burst_corr` became the single MOST
+important feature in the whole model, and Priority's precision roughly
+tripled (0.11 -> 0.33).
+
+**Remaining limitation:** recall for Priority and RoundRobin is still
+low, because they are genuinely rare in the label distribution (551
+and 68 examples respectively, out of 50,000). This is a separate
+problem from missing features -- it's a class-rarity ceiling that
+would need targeted oversampling (e.g. SMOTE) or generating workloads
+specifically designed to favor these algorithms, rather than more
+generic random data.
 
 Quantum is set adaptively per workload (`avg_burst_time / 2`) rather
 than a single fixed value, since a bad quantum-to-burst-time ratio

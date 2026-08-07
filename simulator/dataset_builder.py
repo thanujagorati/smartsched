@@ -30,6 +30,23 @@ from round_robin import round_robin
 from metrics import compute_metrics
 
 
+def _pearson_correlation(x, y):
+    """
+    Simple Pearson correlation coefficient, no numpy dependency.
+    Returns 0 if either list has zero variance (avoids division by zero).
+    """
+    n = len(x)
+    mean_x, mean_y = statistics.mean(x), statistics.mean(y)
+
+    numerator = sum((xi - mean_x) * (yi - mean_y) for xi, yi in zip(x, y))
+    denom_x = sum((xi - mean_x) ** 2 for xi in x) ** 0.5
+    denom_y = sum((yi - mean_y) ** 2 for yi in y) ** 0.5
+
+    if denom_x == 0 or denom_y == 0:
+        return 0.0
+    return numerator / (denom_x * denom_y)
+
+
 def extract_features(workload):
     """
     Compute summary statistics describing a workload -- these are
@@ -43,6 +60,7 @@ def extract_features(workload):
     """
     burst_times = [p["burst_time"] for p in workload]
     arrival_times = sorted(p["arrival_time"] for p in workload)
+    priorities = [p["priority"] for p in workload]
 
     # Gaps between consecutive arrivals -- describes how "bunched up"
     # vs "spread out" the workload's arrival pattern is
@@ -51,6 +69,21 @@ def extract_features(workload):
 
     avg_burst = statistics.mean(burst_times)
     std_burst = statistics.stdev(burst_times) if len(burst_times) > 1 else 0
+
+    # Priority-related features -- these were MISSING originally,
+    # which meant the model had zero information to learn when
+    # Priority scheduling actually wins. Without these, Priority's
+    # outcome depends entirely on values the model never sees.
+    priority_variance = statistics.variance(priorities) if len(priorities) > 1 else 0
+    # Correlation between priority and burst_time: if negative, it
+    # means short jobs tend to ALSO have good (low-number) priority --
+    # in that case Priority scheduling behaves similarly to SJF. If
+    # near zero, priorities are essentially random relative to burst
+    # time, which is closer to what we're generating today.
+    priority_burst_corr = (
+        _pearson_correlation(priorities, burst_times)
+        if len(priorities) > 1 else 0
+    )
 
     return {
         "num_processes": len(workload),
@@ -64,6 +97,8 @@ def extract_features(workload):
         "max_burst_time": max(burst_times),
         "avg_arrival_gap": round(statistics.mean(gaps), 2) if gaps else 0,
         "total_burst_time": sum(burst_times),
+        "priority_variance": round(priority_variance, 2),
+        "priority_burst_corr": round(priority_burst_corr, 3),
     }
 
 
