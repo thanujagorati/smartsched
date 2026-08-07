@@ -33,6 +33,43 @@ def load_model_and_data(model_path="../data/random_forest_model.joblib",
     return model, X
 
 
+def explain_features(model, features_df):
+    """
+    Explain a prediction for an ARBITRARY single row of features --
+    e.g. a live workload from the dashboard, not necessarily a row
+    that exists in the training dataset.
+
+    Args:
+        model: trained RandomForestClassifier
+        features_df: single-row DataFrame with columns matching
+                      FEATURE_COLUMNS
+
+    Returns:
+        dict: predicted class, and sorted (feature, shap_value) pairs
+    """
+    predicted_class = model.predict(features_df)[0]
+
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(features_df)
+
+    class_index = list(model.classes_).index(predicted_class)
+    if isinstance(shap_values, list):
+        values_for_class = shap_values[class_index][0]
+    else:
+        values_for_class = shap_values[0, :, class_index]
+
+    feature_impact = sorted(
+        zip(FEATURE_COLUMNS, values_for_class),
+        key=lambda pair: abs(pair[1]),
+        reverse=True,
+    )
+
+    return {
+        "predicted_class": predicted_class,
+        "feature_impact": feature_impact,
+    }
+
+
 def explain_single_prediction(model, X, row_index):
     """
     Explain ONE specific prediction in human-readable terms.
