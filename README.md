@@ -17,8 +17,8 @@ running all four every time.
 - [x] Gantt chart data structure
 - [x] Dataset generation (Poisson arrivals, bimodal burst times)
 - [x] Random Forest classifier (best algorithm predictor)
-- [ ] Regression model (expected wait/turnaround time)
-- [ ] Heuristic baseline for comparison
+- [x] Regression model (expected wait/turnaround time)
+- [x] Heuristic baseline for comparison
 - [ ] SHAP explainability
 - [ ] Streamlit dashboard
 
