@@ -19,7 +19,7 @@ running all four every time.
 - [x] Random Forest classifier (best algorithm predictor)
 - [x] Regression model (expected wait/turnaround time)
 - [x] Heuristic baseline for comparison
-- [ ] SHAP explainability
+- [x] SHAP explainability
 - [ ] Streamlit dashboard
 
 ## Why ML instead of just running all four simulations?
