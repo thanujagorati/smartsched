@@ -20,7 +20,7 @@ running all four every time.
 - [x] Regression model (expected wait/turnaround time)
 - [x] Heuristic baseline for comparison
 - [x] SHAP explainability
-- [ ] Streamlit dashboard
+- [x] Streamlit dashboard
 
 ## Why ML instead of just running all four simulations?
 
